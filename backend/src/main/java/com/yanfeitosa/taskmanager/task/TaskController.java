@@ -1,8 +1,12 @@
 package com.yanfeitosa.taskmanager.task;
 
 import com.yanfeitosa.taskmanager.task.dto.SaveTaskRequest;
+import com.yanfeitosa.taskmanager.task.dto.TaskPageResponse;
 import com.yanfeitosa.taskmanager.task.dto.TaskResponse;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -13,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -37,6 +42,23 @@ public class TaskController {
     @GetMapping("/{id}")
     public TaskResponse getById(@PathVariable Long id, Authentication authentication) {
         return taskService.getById(id, authentication.getName());
+    }
+
+    @GetMapping
+    public TaskPageResponse list(
+            @RequestParam(required = false) TaskStatus status,
+            @RequestParam(required = false) TaskPriority priority,
+            @RequestParam(required = false) Long assigneeId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            Authentication authentication
+    ) {
+        return taskService.list(
+                authentication.getName(),
+                status,
+                priority,
+                assigneeId,
+                pageable
+        );
     }
 
     @PutMapping("/{id}")

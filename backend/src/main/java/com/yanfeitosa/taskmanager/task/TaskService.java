@@ -1,10 +1,12 @@
 package com.yanfeitosa.taskmanager.task;
 
 import com.yanfeitosa.taskmanager.task.dto.SaveTaskRequest;
+import com.yanfeitosa.taskmanager.task.dto.TaskPageResponse;
 import com.yanfeitosa.taskmanager.task.dto.TaskResponse;
 import com.yanfeitosa.taskmanager.team.Team;
 import com.yanfeitosa.taskmanager.team.TeamRepository;
 import com.yanfeitosa.taskmanager.user.User;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,23 @@ public class TaskService {
         );
 
         return TaskResponse.from(taskRepository.save(task));
+    }
+
+    @Transactional(readOnly = true)
+    public TaskPageResponse list(
+            String currentUserEmail,
+            TaskStatus status,
+            TaskPriority priority,
+            Long assigneeId,
+            Pageable pageable
+    ) {
+        return TaskPageResponse.from(taskRepository.findAccessibleTasks(
+                currentUserEmail,
+                status,
+                priority,
+                assigneeId,
+                pageable
+        ));
     }
 
     @Transactional(readOnly = true)

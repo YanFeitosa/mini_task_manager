@@ -106,6 +106,63 @@ class TaskControllerIntegrationTests {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void shouldListOnlyAccessibleTasksWithPaginationAndSorting() throws Exception {
+        RegisteredUser alice = registerAndLogin("Alice", "alice@example.com");
+        RegisteredUser bob = registerAndLogin("Bob", "bob@example.com");
+        long sharedTeamId = createTeam(alice.accessToken(), "Shared Team");
+        long privateTeamId = createTeam(alice.accessToken(), "Private Team");
+        addTeamMember(alice.accessToken(), sharedTeamId, bob.id());
+
+        createTask(alice.accessToken(), "Zulu task", "TODO", "HIGH", bob.id(), sharedTeamId);
+        createTask(alice.accessToken(), "Alpha task", "TODO", "LOW", null, sharedTeamId);
+        createTask(alice.accessToken(), "Private task", "TODO", "HIGH", alice.id(), privateTeamId);
+
+        mockMvc.perform(get("/tasks")
+                        .header(AUTHORIZATION, bearer(bob.accessToken()))
+                        .param("page", "0")
+                        .param("size", "1")
+                        .param("sort", "title,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("Alpha task"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2));
+
+        mockMvc.perform(get("/tasks")
+                        .header(AUTHORIZATION, bearer(bob.accessToken()))
+                        .param("page", "1")
+                        .param("size", "1")
+                        .param("sort", "title,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("Zulu task"));
+    }
+
+    @Test
+    void shouldFilterTasksByStatusPriorityAndAssignee() throws Exception {
+        RegisteredUser alice = registerAndLogin("Alice", "alice@example.com");
+        RegisteredUser bob = registerAndLogin("Bob", "bob@example.com");
+        long teamId = createTeam(alice.accessToken(), "Platform");
+        addTeamMember(alice.accessToken(), teamId, bob.id());
+
+        createTask(alice.accessToken(), "Matching task", "TODO", "HIGH", bob.id(), teamId);
+        createTask(alice.accessToken(), "Different status", "IN_PROGRESS", "HIGH", bob.id(), teamId);
+        createTask(alice.accessToken(), "Different priority", "TODO", "LOW", bob.id(), teamId);
+        createTask(alice.accessToken(), "Different assignee", "TODO", "HIGH", alice.id(), teamId);
+
+        mockMvc.perform(get("/tasks")
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .param("status", "TODO")
+                        .param("priority", "HIGH")
+                        .param("assigneeId", Long.toString(bob.id())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("Matching task"))
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
     private RegisteredUser registerAndLogin(String name, String email) throws Exception {
         MvcResult registerResult = mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -158,6 +215,21 @@ class TaskControllerIntegrationTests {
                                 {"userId": %d}
                                 """.formatted(userId)))
                 .andExpect(status().isOk());
+    }
+
+    private void createTask(
+            String accessToken,
+            String title,
+            String status,
+            String priority,
+            Long assigneeId,
+            long teamId
+    ) throws Exception {
+        mockMvc.perform(post("/tasks")
+                        .header(AUTHORIZATION, bearer(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(taskBody(title, status, priority, assigneeId, teamId)))
+                .andExpect(status().isCreated());
     }
 
     private String taskBody(
