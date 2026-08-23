@@ -18,6 +18,10 @@ public class JwtService {
             JwtEncoder jwtEncoder,
             @Value("${security.jwt.expiration-seconds}") long expirationSeconds
     ) {
+        if (expirationSeconds <= 0) {
+            throw new IllegalStateException("JWT_EXPIRATION_SECONDS must be greater than zero");
+        }
+
         this.jwtEncoder = jwtEncoder;
         this.expirationSeconds = expirationSeconds;
     }

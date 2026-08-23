@@ -163,6 +163,34 @@ class TaskControllerIntegrationTests {
                 .andExpect(jsonPath("$.totalElements").value(1));
     }
 
+    @Test
+    void shouldRejectInvalidTaskListParameters() throws Exception {
+        RegisteredUser alice = registerAndLogin("Alice", "alice@example.com");
+
+        mockMvc.perform(get("/tasks")
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .param("assigneeId", "0"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/tasks")
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .param("size", "101"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/tasks")
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .param("sort", "passwordHash,asc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Unsupported sort property: passwordHash"));
+
+        mockMvc.perform(get("/tasks")
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .param("status", "INVALID"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Invalid request"))
+                .andExpect(jsonPath("$.errors.status").exists());
+    }
+
     private RegisteredUser registerAndLogin(String name, String email) throws Exception {
         MvcResult registerResult = mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

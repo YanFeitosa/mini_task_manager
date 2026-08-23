@@ -12,8 +12,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Set;
+
 @Service
 public class TaskService {
+
+    private static final int MAX_PAGE_SIZE = 100;
+    private static final Set<String> ALLOWED_SORT_PROPERTIES = Set.of(
+            "id",
+            "title",
+            "status",
+            "priority",
+            "createdAt",
+            "dueDate"
+    );
 
     private final TaskRepository taskRepository;
     private final TeamRepository teamRepository;
@@ -48,6 +60,7 @@ public class TaskService {
             Long assigneeId,
             Pageable pageable
     ) {
+        validateListParameters(assigneeId, pageable);
         return TaskPageResponse.from(taskRepository.findAccessibleTasks(
                 currentUserEmail,
                 status,
@@ -55,6 +68,27 @@ public class TaskService {
                 assigneeId,
                 pageable
         ));
+    }
+
+    private void validateListParameters(Long assigneeId, Pageable pageable) {
+        if (assigneeId != null && assigneeId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "assigneeId must be positive");
+        }
+        if (pageable.getPageSize() > MAX_PAGE_SIZE) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Page size cannot exceed " + MAX_PAGE_SIZE
+            );
+        }
+
+        pageable.getSort().forEach(order -> {
+            if (!ALLOWED_SORT_PROPERTIES.contains(order.getProperty())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Unsupported sort property: " + order.getProperty()
+                );
+            }
+        });
     }
 
     @Transactional(readOnly = true)
