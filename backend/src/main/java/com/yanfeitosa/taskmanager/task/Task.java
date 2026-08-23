@@ -61,15 +61,36 @@ public class Task {
             String description,
             TaskStatus status,
             TaskPriority priority,
+            User assignee,
             Team team,
             LocalDate dueDate
     ) {
+        update(title, description, status, priority, assignee, team, dueDate);
+    }
+
+    public void update(
+            String title,
+            String description,
+            TaskStatus status,
+            TaskPriority priority,
+            User assignee,
+            Team team,
+            LocalDate dueDate
+    ) {
+        validateCompletion(status, assignee);
         this.title = title;
         this.description = description;
         this.status = status;
         this.priority = priority;
+        this.assignee = assignee;
         this.team = team;
         this.dueDate = dueDate;
+    }
+
+    private void validateCompletion(TaskStatus status, User assignee) {
+        if (status == TaskStatus.COMPLETED && assignee == null) {
+            throw new TaskCompletionException();
+        }
     }
 
     @PrePersist
@@ -87,48 +108,24 @@ public class Task {
         return title;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
     public String getDescription() {
         return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
     }
 
     public TaskStatus getStatus() {
         return status;
     }
 
-    public void setStatus(TaskStatus status) {
-        this.status = status;
-    }
-
     public TaskPriority getPriority() {
         return priority;
-    }
-
-    public void setPriority(TaskPriority priority) {
-        this.priority = priority;
     }
 
     public User getAssignee() {
         return assignee;
     }
 
-    public void setAssignee(User assignee) {
-        this.assignee = assignee;
-    }
-
     public Team getTeam() {
         return team;
-    }
-
-    public void setTeam(Team team) {
-        this.team = team;
     }
 
     public Instant getCreatedAt() {
@@ -137,9 +134,5 @@ public class Task {
 
     public LocalDate getDueDate() {
         return dueDate;
-    }
-
-    public void setDueDate(LocalDate dueDate) {
-        this.dueDate = dueDate;
     }
 }
