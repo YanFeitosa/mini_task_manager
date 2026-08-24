@@ -232,7 +232,7 @@
 .task-list__labels,
 .task-row {
   display: grid;
-  grid-template-columns: minmax(13rem, 2fr) 8rem 7rem minmax(9rem, 1fr) 9rem;
+  grid-template-columns: minmax(13rem, 2fr) 9.5rem 7rem minmax(9rem, 1fr) 9rem;
   align-items: center;
   gap: 1rem;
   padding-right: 1.25rem;
