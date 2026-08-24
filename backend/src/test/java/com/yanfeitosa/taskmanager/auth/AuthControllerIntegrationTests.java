@@ -99,6 +99,8 @@ class AuthControllerIntegrationTests {
                 .andExpect(jsonPath("$.accessToken", matchesPattern("^[^.]+\\.[^.]+\\.[^.]+$")))
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.expiresIn").value(3600))
+                .andExpect(jsonPath("$.userId").isNumber())
+                .andExpect(jsonPath("$.userName").value("Yan Feitosa"))
                 .andReturn();
 
         String accessToken = JsonPath.read(loginResult.getResponse().getContentAsString(), "$.accessToken");

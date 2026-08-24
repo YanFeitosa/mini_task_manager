@@ -57,8 +57,15 @@ public class AuthService {
         var credentials = new UsernamePasswordAuthenticationToken(normalizedEmail, request.password());
         var authentication = authenticationManager.authenticate(credentials);
         String accessToken = jwtService.generateToken(authentication.getName());
+        User user = userRepository.findByEmail(normalizedEmail).orElseThrow();
 
-        return new AuthResponse(accessToken, "Bearer", jwtService.getExpirationSeconds());
+        return new AuthResponse(
+                accessToken,
+                "Bearer",
+                jwtService.getExpirationSeconds(),
+                user.getId(),
+                user.getName()
+        );
     }
 
     private String normalizeEmail(String email) {

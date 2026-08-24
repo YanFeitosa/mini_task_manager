@@ -1,4 +1,6 @@
 const TOKEN_STORAGE_KEY = 'mini-task-manager.access-token'
+const USER_ID_STORAGE_KEY = 'mini-task-manager.user-id'
+const USER_NAME_STORAGE_KEY = 'mini-task-manager.user-name'
 
 type JwtClaims = {
   exp?: number
@@ -6,6 +8,8 @@ type JwtClaims = {
 
 export type StoredSession = {
   token: string | null
+  userId: number | null
+  userName: string | null
   expired: boolean
   expiresAt: number | null
 }
@@ -28,7 +32,9 @@ function decodeClaims(token: string): JwtClaims | null {
 export function readStoredSession(): StoredSession {
   const token = window.sessionStorage.getItem(TOKEN_STORAGE_KEY)
   if (!token) {
-    return { token: null, expired: false, expiresAt: null }
+    window.sessionStorage.removeItem(USER_ID_STORAGE_KEY)
+    window.sessionStorage.removeItem(USER_NAME_STORAGE_KEY)
+    return { token: null, userId: null, userName: null, expired: false, expiresAt: null }
   }
 
   const claims = decodeClaims(token)
@@ -36,23 +42,31 @@ export function readStoredSession(): StoredSession {
   const expired = expiresAt === null || expiresAt <= Date.now()
 
   if (expired) {
-    window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
-    return { token: null, expired: true, expiresAt: null }
+    removeSession()
+    return { token: null, userId: null, userName: null, expired: true, expiresAt: null }
   }
+
+  const storedUserId = Number(window.sessionStorage.getItem(USER_ID_STORAGE_KEY))
 
   return {
     token,
+    userId: Number.isInteger(storedUserId) && storedUserId > 0 ? storedUserId : null,
+    userName: window.sessionStorage.getItem(USER_NAME_STORAGE_KEY),
     expired: false,
     expiresAt,
   }
 }
 
-export function storeToken(token: string) {
+export function storeSession(token: string, userId: number, userName: string) {
   window.sessionStorage.setItem(TOKEN_STORAGE_KEY, token)
+  window.sessionStorage.setItem(USER_ID_STORAGE_KEY, String(userId))
+  window.sessionStorage.setItem(USER_NAME_STORAGE_KEY, userName)
 }
 
-export function removeToken() {
+export function removeSession() {
   window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+  window.sessionStorage.removeItem(USER_ID_STORAGE_KEY)
+  window.sessionStorage.removeItem(USER_NAME_STORAGE_KEY)
 }
 
 export function readTokenExpiration(token: string) {

@@ -39,6 +39,16 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   return responseBody as T
 }
 
+export function authenticatedApiRequest<T>(
+  path: string,
+  accessToken: string,
+  options: RequestInit = {},
+) {
+  const headers = new Headers(options.headers)
+  headers.set('Authorization', `Bearer ${accessToken}`)
+  return apiRequest<T>(path, { ...options, headers })
+}
+
 function parseResponse(responseText: string): unknown {
   try {
     return JSON.parse(responseText)

@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { apiRequest } from '../../services/api'
 import { AuthContext } from './authContext'
-import { readStoredSession, readTokenExpiration, removeToken, storeToken } from './authStorage'
+import { readStoredSession, readTokenExpiration, removeSession, storeSession } from './authStorage'
 
 type AuthResponse = {
   accessToken: string
+  userId: number
+  userName: string
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState(readStoredSession)
 
   const expireSession = useCallback(() => {
-    removeToken()
-    setSession({ token: null, expired: true, expiresAt: null })
+    removeSession()
+    setSession({ token: null, userId: null, userName: null, expired: true, expiresAt: null })
   }, [])
 
   useEffect(() => {
@@ -31,17 +33,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
     })
 
-    storeToken(response.accessToken)
+    storeSession(response.accessToken, response.userId, response.userName)
     setSession({
       token: response.accessToken,
+      userId: response.userId,
+      userName: response.userName,
       expired: false,
       expiresAt: readTokenExpiration(response.accessToken),
     })
   }, [])
 
   const logout = useCallback(() => {
-    removeToken()
-    setSession({ token: null, expired: false, expiresAt: null })
+    removeSession()
+    setSession({ token: null, userId: null, userName: null, expired: false, expiresAt: null })
   }, [])
 
   const clearSessionNotice = useCallback(
@@ -53,9 +57,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         isAuthenticated: session.token !== null,
+        token: session.token,
+        userId: session.userId,
+        userName: session.userName,
         sessionExpired: session.expired,
         login,
         logout,
+        expireSession,
         clearSessionNotice,
       }}
     >

@@ -2,9 +2,13 @@ import { createContext, useContext } from 'react'
 
 export type AuthContextValue = {
   isAuthenticated: boolean
+  token: string | null
+  userId: number | null
+  userName: string | null
   sessionExpired: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
+  expireSession: () => void
   clearSessionNotice: () => void
 }
 

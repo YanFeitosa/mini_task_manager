@@ -1,0 +1,135 @@
+.custom-select {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  color: var(--text);
+}
+
+.custom-select__trigger {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.78rem;
+  color: inherit;
+  background: rgba(238, 231, 220, 0.72);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.custom-select__trigger > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-select__trigger > svg {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  transition: transform 160ms ease;
+}
+
+.custom-select--open .custom-select__trigger > svg {
+  transform: rotate(180deg);
+}
+
+.custom-select__trigger:focus-visible {
+  outline: 0;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px rgba(169, 139, 109, 0.14);
+}
+
+.custom-select__options {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  width: 100%;
+  min-width: max-content;
+  max-height: 15rem;
+  padding: 0.3rem;
+  overflow-y: auto;
+  border: 1px solid rgba(202, 188, 169, 0.8);
+  border-radius: 0.8rem;
+  background: rgba(229, 220, 207, 0.95);
+  box-shadow: 0 0.7rem 1.5rem rgba(91, 74, 56, 0.12);
+}
+
+.custom-select__option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.62rem 0.7rem;
+  border: 0;
+  border-radius: 0.58rem;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.custom-select__option--active {
+  background: rgba(255, 253, 249, 0.58);
+}
+
+.custom-select__option > svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.custom-select--disabled {
+  color: var(--text-muted);
+  opacity: 0.65;
+}
+
+.custom-select--disabled .custom-select__trigger {
+  cursor: not-allowed;
+}
+
+.custom-select--compact {
+  width: fit-content;
+  max-width: 100%;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.custom-select--compact .custom-select__trigger {
+  min-height: 2rem;
+  border-color: transparent;
+  border-radius: 999px;
+  padding: 0 0.65rem;
+  font-weight: inherit;
+}
+
+.custom-select--compact .custom-select__options {
+  width: auto;
+  min-width: 10rem;
+}
+
+.custom-select--todo .custom-select__trigger {
+  color: #756149;
+  background: #eee3d2;
+}
+
+.custom-select--in-progress .custom-select__trigger {
+  color: #696344;
+  background: #ece9d2;
+}
+
+.custom-select--completed .custom-select__trigger {
+  color: #56664f;
+  background: #dfe8d9;
+}
