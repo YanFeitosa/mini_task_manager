@@ -3,17 +3,15 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleAlert,
-  CircleUserRound,
   ClipboardList,
   Rows3,
   LoaderCircle,
-  LogOut,
+  Plus,
   SlidersHorizontal,
   UserRoundCheck,
   X,
 } from 'lucide-react'
-import { useNavigate } from 'react-router'
-import { AppBrand } from '../components/AppBrand'
+import { useLocation, useNavigate } from 'react-router'
 import { Select } from '../components/Select'
 import { useAuth } from '../features/auth/authContext'
 import { TaskList } from '../features/tasks/TaskList'
@@ -54,7 +52,8 @@ type TaskView = 'all' | 'mine'
 
 export function TasksPage() {
   const navigate = useNavigate()
-  const { token, userId, userName, logout, expireSession } = useAuth()
+  const location = useLocation()
+  const { token, userId, userName, expireSession } = useAuth()
   const [view, setView] = useState<TaskView>('all')
   const [filters, setFilters] = useState<TaskFilters>(EMPTY_FILTERS)
   const [page, setPage] = useState(0)
@@ -123,11 +122,6 @@ export function TasksPage() {
 
     return () => controller.abort()
   }, [expireSession, filters, page, reloadKey, token])
-
-  function handleLogout() {
-    logout()
-    navigate('/login', { replace: true })
-  }
 
   function handleFilterChange(name: keyof TaskFilters, value: string) {
     startLoading()
@@ -230,29 +224,9 @@ export function TasksPage() {
       : []),
     ...members.map((member) => ({ value: String(member.id), label: member.name })),
   ]
+  const notice = (location.state as { notice?: string } | null)?.notice
 
   return (
-    <div className="tasks-page">
-      <header className="tasks-header">
-        <div className="tasks-header__content">
-          <AppBrand />
-
-          <div className="tasks-header__actions">
-            <div className="user-summary">
-              <CircleUserRound size={20} aria-hidden="true" />
-              <span>
-                <small>Conectado como</small>
-                <strong>{userName ?? 'Usuário'}</strong>
-              </span>
-            </div>
-            <button className="logout-button" type="button" onClick={handleLogout}>
-              <LogOut size={18} aria-hidden="true" />
-              <span>Sair</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
       <main className="tasks-content">
         <div className="tasks-heading">
           <div>
@@ -260,6 +234,10 @@ export function TasksPage() {
             <h1>Tarefas</h1>
             <p>Acompanhe as demandas dos seus times em um só lugar.</p>
           </div>
+          <button className="new-task-button" type="button" onClick={() => navigate('/tasks/new')}>
+            <Plus size={18} aria-hidden="true" />
+            Nova tarefa
+          </button>
         </div>
 
         <nav className="task-views" aria-label="Visualização das tarefas">
@@ -283,6 +261,8 @@ export function TasksPage() {
             Minhas atividades
           </button>
         </nav>
+
+        {notice && <div className="tasks-notice">{notice}</div>}
 
         {statusError && (
           <div className="tasks-feedback" role="alert">
@@ -408,7 +388,6 @@ export function TasksPage() {
           )}
         </section>
       </main>
-    </div>
   )
 }
 

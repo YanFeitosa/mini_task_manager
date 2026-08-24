@@ -1,20 +1,13 @@
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, ChevronRight } from 'lucide-react'
+import { Link } from 'react-router'
 import { Select } from '../../components/Select'
+import {
+  formatDate,
+  getStatusTone,
+  PRIORITY_LABELS,
+  STATUS_OPTIONS,
+} from './taskPresentation'
 import type { Task, TaskStatus } from './tasksApi'
-
-const STATUS_LABELS = {
-  TODO: 'Pendente',
-  IN_PROGRESS: 'Em andamento',
-  COMPLETED: 'Concluída',
-} as const
-
-const STATUS_OPTIONS = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))
-
-const PRIORITY_LABELS = {
-  LOW: 'Baixa',
-  MEDIUM: 'Média',
-  HIGH: 'Alta',
-} as const
 
 type TaskListProps = {
   tasks: Task[]
@@ -36,7 +29,10 @@ export function TaskList({ tasks, updatingTaskId, onStatusChange }: TaskListProp
       {tasks.map((task) => (
         <article className="task-row" key={task.id} role="listitem">
           <div className="task-row__main">
-            <strong>{task.title}</strong>
+            <Link to={`/tasks/${task.id}`}>
+              <strong>{task.title}</strong>
+              <ChevronRight size={16} aria-hidden="true" />
+            </Link>
             <span>{task.team.name}</span>
           </div>
 
@@ -76,23 +72,6 @@ export function TaskList({ tasks, updatingTaskId, onStatusChange }: TaskListProp
       ))}
     </div>
   )
-}
-
-function getStatusTone(status: TaskStatus) {
-  return {
-    TODO: 'todo',
-    IN_PROGRESS: 'in-progress',
-    COMPLETED: 'completed',
-  }[status] as 'todo' | 'in-progress' | 'completed'
-}
-
-function formatDate(value: string) {
-  const [year, month, day] = value.split('-').map(Number)
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(year, month - 1, day))
 }
 
 function isTaskOverdue(task: Task) {

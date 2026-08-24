@@ -24,11 +24,21 @@ export type TeamMember = {
   email: string
 }
 
-type Team = {
+export type Team = {
   id: number
   name: string
   createdAt: string
   members: TeamMember[]
+}
+
+export type TaskPayload = {
+  title: string
+  description: string | null
+  status: TaskStatus
+  priority: TaskPriority
+  assigneeId: number | null
+  teamId: number
+  dueDate: string | null
 }
 
 export type TaskPage = {
@@ -72,8 +82,16 @@ export function getTasks(
   return authenticatedApiRequest<TaskPage>(`/tasks?${params}`, accessToken, { signal })
 }
 
+export function getTask(accessToken: string, taskId: number, signal?: AbortSignal) {
+  return authenticatedApiRequest<Task>(`/tasks/${taskId}`, accessToken, { signal })
+}
+
+export function getTeams(accessToken: string, signal?: AbortSignal) {
+  return authenticatedApiRequest<Team[]>('/teams', accessToken, { signal })
+}
+
 export async function getTeamMembers(accessToken: string, signal?: AbortSignal) {
-  const teams = await authenticatedApiRequest<Team[]>('/teams', accessToken, { signal })
+  const teams = await getTeams(accessToken, signal)
   const membersById = new Map<number, TeamMember>()
 
   teams.forEach((team) => {
@@ -85,17 +103,32 @@ export async function getTeamMembers(accessToken: string, signal?: AbortSignal) 
   )
 }
 
-export function updateTaskStatus(accessToken: string, task: Task, status: TaskStatus) {
-  return authenticatedApiRequest<Task>(`/tasks/${task.id}`, accessToken, {
+export function createTask(accessToken: string, payload: TaskPayload) {
+  return authenticatedApiRequest<Task>('/tasks', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function updateTask(accessToken: string, taskId: number, payload: TaskPayload) {
+  return authenticatedApiRequest<Task>(`/tasks/${taskId}`, accessToken, {
     method: 'PUT',
-    body: JSON.stringify({
-      title: task.title,
-      description: task.description,
-      status,
-      priority: task.priority,
-      assigneeId: task.assignee?.id ?? null,
-      teamId: task.team.id,
-      dueDate: task.dueDate,
-    }),
+    body: JSON.stringify(payload),
+  })
+}
+
+export function deleteTask(accessToken: string, taskId: number) {
+  return authenticatedApiRequest<void>(`/tasks/${taskId}`, accessToken, { method: 'DELETE' })
+}
+
+export function updateTaskStatus(accessToken: string, task: Task, status: TaskStatus) {
+  return updateTask(accessToken, task.id, {
+    title: task.title,
+    description: task.description,
+    status,
+    priority: task.priority,
+    assigneeId: task.assignee?.id ?? null,
+    teamId: task.team.id,
+    dueDate: task.dueDate,
   })
 }
