@@ -1,0 +1,33 @@
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-brand__icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.9rem;
+  color: #5f4c3c;
+  background: var(--primary-soft);
+}
+
+.app-brand__copy {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.app-brand__copy strong {
+  color: var(--text);
+  font-size: 0.98rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.app-brand__copy small {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
