@@ -17,10 +17,15 @@ public record TaskResponse(
         AssigneeResponse assignee,
         TeamSummary team,
         Instant createdAt,
-        LocalDate dueDate
+        LocalDate dueDate,
+        boolean overdue
 ) {
 
     public static TaskResponse from(Task task) {
+        return from(task, LocalDate.now());
+    }
+
+    public static TaskResponse from(Task task, LocalDate today) {
         return new TaskResponse(
                 task.getId(),
                 task.getTitle(),
@@ -30,7 +35,8 @@ public record TaskResponse(
                 AssigneeResponse.from(task.getAssignee()),
                 new TeamSummary(task.getTeam().getId(), task.getTeam().getName()),
                 task.getCreatedAt(),
-                task.getDueDate()
+                task.getDueDate(),
+                task.isOverdue(today)
         );
     }
 

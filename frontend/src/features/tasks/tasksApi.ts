@@ -1,6 +1,7 @@
 import { authenticatedApiRequest } from '../../services/api'
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'COMPLETED'
+export type TaskStatusFilter = TaskStatus | 'OVERDUE' | ''
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH'
 
 export type Task = {
@@ -16,6 +17,7 @@ export type Task = {
   }
   createdAt: string
   dueDate: string | null
+  overdue: boolean
 }
 
 export type TeamMember = {
@@ -50,7 +52,7 @@ export type TaskPage = {
 }
 
 export type TaskFilters = {
-  status: TaskStatus | ''
+  status: TaskStatusFilter
   priority: TaskPriority | ''
   assigneeId: string
 }
@@ -69,7 +71,13 @@ export function getTasks(
     sort: 'createdAt,desc',
   })
 
-  if (filters.status) {
+  if (filters.status === 'OVERDUE') {
+    params.set('status', 'TODO')
+    params.set('overdue', 'true')
+  } else if (filters.status === 'TODO') {
+    params.set('status', 'TODO')
+    params.set('overdue', 'false')
+  } else if (filters.status) {
     params.set('status', filters.status)
   }
   if (filters.priority) {

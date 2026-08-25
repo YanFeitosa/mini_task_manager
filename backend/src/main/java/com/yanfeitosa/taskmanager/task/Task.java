@@ -135,4 +135,8 @@ public class Task {
     public LocalDate getDueDate() {
         return dueDate;
     }
+
+    public boolean isOverdue(LocalDate today) {
+        return status == TaskStatus.TODO && dueDate != null && dueDate.isBefore(today);
+    }
 }

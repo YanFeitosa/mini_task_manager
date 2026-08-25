@@ -145,8 +145,17 @@
 }
 
 .task-detail__status--todo {
-  color: #756149;
-  background: #eee3d2;
+  color: #8f571f;
+  background: #f7dfc2;
+}
+
+.task-detail__status--pending {
+  color: #9b3e33;
+  background: #f5d8d3;
+}
+
+.task-detail__metadata .task-detail__unassigned {
+  color: #a23e34;
 }
 
 .task-detail__status--in-progress {

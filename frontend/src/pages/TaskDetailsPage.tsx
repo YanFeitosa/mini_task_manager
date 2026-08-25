@@ -14,9 +14,9 @@ import { useLocation, useNavigate, useParams } from 'react-router'
 import { useAuth } from '../features/auth/authContext'
 import {
   formatDate,
-  getStatusTone,
+  getTaskStatusLabel,
+  getTaskStatusTone,
   PRIORITY_LABELS,
-  STATUS_LABELS,
 } from '../features/tasks/taskPresentation'
 import { deleteTask, getTask, type Task } from '../features/tasks/tasksApi'
 import { ApiError } from '../services/api'
@@ -146,8 +146,8 @@ export function TaskDetailsPage() {
 
           <section className="task-page__card task-detail">
             <div className="task-detail__badges">
-              <span className={`task-detail__status task-detail__status--${getStatusTone(task.status)}`}>
-                {STATUS_LABELS[task.status]}
+              <span className={`task-detail__status task-detail__status--${getTaskStatusTone(task)}`}>
+                {getTaskStatusLabel(task)}
               </span>
               <span className={`task-detail__priority task-detail__priority--${task.priority.toLowerCase()}`}>
                 {PRIORITY_LABELS[task.priority]}
@@ -166,7 +166,9 @@ export function TaskDetailsPage() {
               </div>
               <div>
                 <dt><UserRound size={17} aria-hidden="true" /> Responsável</dt>
-                <dd>{task.assignee?.name ?? 'Não atribuído'}</dd>
+                <dd className={task.assignee ? undefined : 'task-detail__unassigned'}>
+                  {task.assignee?.name ?? 'Não atribuído'}
+                </dd>
               </div>
               <div>
                 <dt><CalendarDays size={17} aria-hidden="true" /> Prazo</dt>

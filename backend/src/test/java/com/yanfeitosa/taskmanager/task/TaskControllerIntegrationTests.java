@@ -10,6 +10,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -164,6 +166,42 @@ class TaskControllerIntegrationTests {
     }
 
     @Test
+    void shouldDeriveAndFilterOverdueTodoTasks() throws Exception {
+        RegisteredUser alice = registerAndLogin("Alice", "alice@example.com");
+        long teamId = createTeam(alice.accessToken(), "Platform");
+        String yesterday = LocalDate.now().minusDays(1).toString();
+        String today = LocalDate.now().toString();
+
+        createTask(alice.accessToken(), "Overdue task", "TODO", "HIGH", alice.id(), teamId, yesterday);
+        createTask(alice.accessToken(), "Due today", "TODO", "MEDIUM", alice.id(), teamId, today);
+        createTask(alice.accessToken(), "Overdue in progress", "IN_PROGRESS", "LOW", alice.id(), teamId, yesterday);
+
+        mockMvc.perform(get("/tasks")
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .param("status", "TODO")
+                        .param("overdue", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("Overdue task"))
+                .andExpect(jsonPath("$.content[0].overdue").value(true));
+
+        mockMvc.perform(get("/tasks")
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .param("status", "TODO")
+                        .param("overdue", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("Due today"))
+                .andExpect(jsonPath("$.content[0].overdue").value(false));
+
+        mockMvc.perform(get("/tasks")
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .param("status", "IN_PROGRESS"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].overdue").value(false));
+    }
+
+    @Test
     void shouldRejectInvalidTaskListParameters() throws Exception {
         RegisteredUser alice = registerAndLogin("Alice", "alice@example.com");
 
@@ -253,10 +291,22 @@ class TaskControllerIntegrationTests {
             Long assigneeId,
             long teamId
     ) throws Exception {
+        createTask(accessToken, title, status, priority, assigneeId, teamId, "2030-12-31");
+    }
+
+    private void createTask(
+            String accessToken,
+            String title,
+            String status,
+            String priority,
+            Long assigneeId,
+            long teamId,
+            String dueDate
+    ) throws Exception {
         mockMvc.perform(post("/tasks")
                         .header(AUTHORIZATION, bearer(accessToken))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(taskBody(title, status, priority, assigneeId, teamId)))
+                        .content(taskBody(title, status, priority, assigneeId, teamId, dueDate)))
                 .andExpect(status().isCreated());
     }
 
@@ -267,6 +317,17 @@ class TaskControllerIntegrationTests {
             Long assigneeId,
             long teamId
     ) {
+        return taskBody(title, status, priority, assigneeId, teamId, "2030-12-31");
+    }
+
+    private String taskBody(
+            String title,
+            String status,
+            String priority,
+            Long assigneeId,
+            long teamId,
+            String dueDate
+    ) {
         String assignee = assigneeId == null ? "null" : assigneeId.toString();
         return """
                 {
@@ -276,9 +337,9 @@ class TaskControllerIntegrationTests {
                   "priority": "%s",
                   "assigneeId": %s,
                   "teamId": %d,
-                  "dueDate": "2030-12-31"
+                  "dueDate": "%s"
                 }
-                """.formatted(title, status, priority, assignee, teamId);
+                """.formatted(title, status, priority, assignee, teamId, dueDate);
     }
 
     private String bearer(String accessToken) {

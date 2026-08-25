@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.util.Set;
 
 @Service
@@ -56,21 +57,38 @@ public class TaskService {
     public TaskPageResponse list(
             String currentUserEmail,
             TaskStatus status,
+            Boolean overdue,
             TaskPriority priority,
             Long assigneeId,
             Pageable pageable
     ) {
-        validateListParameters(assigneeId, pageable);
+        validateListParameters(status, overdue, assigneeId, pageable);
+        LocalDate today = LocalDate.now();
+        TaskStatus effectiveStatus = overdue == null ? status : TaskStatus.TODO;
+
         return TaskPageResponse.from(taskRepository.findAccessibleTasks(
                 currentUserEmail,
-                status,
+                effectiveStatus,
+                overdue,
+                today,
                 priority,
                 assigneeId,
                 pageable
-        ));
+        ), today);
     }
 
-    private void validateListParameters(Long assigneeId, Pageable pageable) {
+    private void validateListParameters(
+            TaskStatus status,
+            Boolean overdue,
+            Long assigneeId,
+            Pageable pageable
+    ) {
+        if (overdue != null && status != null && status != TaskStatus.TODO) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Overdue filter can only be combined with TODO status"
+            );
+        }
         if (assigneeId != null && assigneeId <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "assigneeId must be positive");
         }

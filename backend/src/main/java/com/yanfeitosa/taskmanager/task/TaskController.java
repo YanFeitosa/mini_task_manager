@@ -47,6 +47,7 @@ public class TaskController {
     @GetMapping
     public TaskPageResponse list(
             @RequestParam(required = false) TaskStatus status,
+            @RequestParam(required = false) Boolean overdue,
             @RequestParam(required = false) TaskPriority priority,
             @RequestParam(required = false) Long assigneeId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
@@ -55,6 +56,7 @@ public class TaskController {
         return taskService.list(
                 authentication.getName(),
                 status,
+                overdue,
                 priority,
                 assigneeId,
                 pageable

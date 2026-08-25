@@ -249,6 +249,12 @@
   text-transform: uppercase;
 }
 
+.task-list__labels span:nth-child(2),
+.task-list__labels span:nth-child(3),
+.task-list__labels span:nth-child(4) {
+  text-align: center;
+}
+
 .task-row {
   min-height: 5.15rem;
   border-top: 1px solid #e8e0d6;
@@ -303,6 +309,11 @@
   min-width: 0;
 }
 
+.task-row__field--center {
+  display: flex;
+  justify-content: center;
+}
+
 .task-row__mobile-label {
   display: none;
 }
@@ -323,19 +334,24 @@
 }
 
 .priority-badge::before {
-  width: 0.45rem;
-  height: 0.45rem;
+  width: 0.62rem;
+  height: 0.62rem;
   border-radius: 50%;
-  background: #a99b8d;
+  background: #55a466;
   content: '';
 }
 
 .priority-badge--medium::before {
-  background: #b49468;
+  background: #df9627;
 }
 
 .priority-badge--high::before {
-  background: #b06c5d;
+  background: #dc5849;
+}
+
+.task-assignee > .task-assignee--unassigned {
+  color: #a23e34;
+  font-weight: 700;
 }
 
 .task-date {
@@ -459,6 +475,7 @@
 
   .task-row__field {
     display: grid;
+    justify-content: initial;
     gap: 0.4rem;
   }
 

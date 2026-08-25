@@ -120,8 +120,13 @@
 }
 
 .custom-select--todo .custom-select__trigger {
-  color: #756149;
-  background: #eee3d2;
+  color: #8f571f;
+  background: #f7dfc2;
+}
+
+.custom-select--pending .custom-select__trigger {
+  color: #9b3e33;
+  background: #f5d8d3;
 }
 
 .custom-select--in-progress .custom-select__trigger {

@@ -123,7 +123,7 @@ public class DemoDataInitializer implements ApplicationRunner {
                 TaskPriority.LOW,
                 ana,
                 productTeam,
-                LocalDate.now().plusDays(10)
+                LocalDate.now().minusDays(1)
         ));
         saveIfMissing(existingTitles, new Task(
                 "Configurar ambiente de homologação",

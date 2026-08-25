@@ -15,6 +15,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { Select } from '../components/Select'
 import { useAuth } from '../features/auth/authContext'
 import { TaskList } from '../features/tasks/TaskList'
+import { isPastDueDate } from '../features/tasks/taskPresentation'
 import {
   getTasks,
   getTeamMembers,
@@ -36,7 +37,8 @@ const EMPTY_FILTERS: TaskFilters = {
 
 const STATUS_FILTER_OPTIONS = [
   { value: '', label: 'Todos' },
-  { value: 'TODO', label: 'Pendente' },
+  { value: 'TODO', label: 'A fazer' },
+  { value: 'OVERDUE', label: 'Pendente' },
   { value: 'IN_PROGRESS', label: 'Em andamento' },
   { value: 'COMPLETED', label: 'Concluída' },
 ]
@@ -174,7 +176,11 @@ export function TasksPage() {
 
     setStatusError(null)
     setUpdatingTaskId(task.id)
-    replaceTask({ ...task, status })
+    replaceTask({
+      ...task,
+      status,
+      overdue: status === 'TODO' && isPastDueDate(task.dueDate),
+    })
 
     try {
       const updatedTask = await updateTaskStatus(token, task, status)
