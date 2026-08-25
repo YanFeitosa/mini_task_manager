@@ -1,7 +1,9 @@
 import {
   ArrowLeft,
   CalendarDays,
+  Circle,
   CircleAlert,
+  CircleCheckBig,
   Clock3,
   LoaderCircle,
   Pencil,
@@ -18,7 +20,12 @@ import {
   getTaskStatusTone,
   PRIORITY_LABELS,
 } from '../features/tasks/taskPresentation'
-import { deleteTask, getTask, type Task } from '../features/tasks/tasksApi'
+import {
+  deleteTask,
+  getTask,
+  updateChecklistItem,
+  type Task,
+} from '../features/tasks/tasksApi'
 import { ApiError } from '../services/api'
 import './TaskPages.css'
 
@@ -26,7 +33,7 @@ export function TaskDetailsPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { id } = useParams()
-  const { token, expireSession } = useAuth()
+  const { token, userId, expireSession } = useAuth()
   const taskId = Number(id)
   const invalidTaskId = !Number.isInteger(taskId) || taskId <= 0
   const notice = (location.state as { notice?: string } | null)?.notice
@@ -38,6 +45,8 @@ export function TaskDetailsPage() {
     invalidTaskId ? 'Tarefa não encontrada.' : null,
   )
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [checklistError, setChecklistError] = useState<string | null>(null)
+  const [updatingChecklistItemId, setUpdatingChecklistItemId] = useState<number | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
@@ -93,6 +102,36 @@ export function TaskDetailsPage() {
         setDeleteError('Não foi possível excluir a tarefa. Tente novamente.')
       }
       setIsDeleting(false)
+    }
+  }
+
+  async function handleChecklistItemChange(itemId: number, completed: boolean) {
+    if (
+      !token ||
+      !task ||
+      task.assignee?.id !== userId ||
+      updatingChecklistItemId !== null
+    ) {
+      return
+    }
+
+    setUpdatingChecklistItemId(itemId)
+    setChecklistError(null)
+
+    try {
+      setTask(await updateChecklistItem(token, task.id, itemId, completed))
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        expireSession()
+      } else if (error instanceof ApiError && error.status === 403) {
+        setChecklistError('Somente o responsável pode atualizar o checklist.')
+      } else if (error instanceof ApiError && error.status === 422) {
+        setChecklistError('Reabra a tarefa antes de desmarcar um item.')
+      } else {
+        setChecklistError('Não foi possível atualizar o checklist. Tente novamente.')
+      }
+    } finally {
+      setUpdatingChecklistItemId(null)
     }
   }
 
@@ -159,6 +198,46 @@ export function TaskDetailsPage() {
               <p>{task.description || 'Nenhuma descrição informada.'}</p>
             </div>
 
+            {task.checklist.length > 0 && (
+              <div className="task-detail__checklist">
+                <div>
+                  <h2>Checklist</h2>
+                  <span>{task.progress}% concluído</span>
+                </div>
+                <ul>
+                  {task.checklist.map((item) => (
+                    <li className={item.completed ? 'task-detail__checklist-item--completed' : undefined} key={item.id}>
+                      <button
+                        type="button"
+                        aria-label={`${item.completed ? 'Desmarcar' : 'Marcar'} ${item.description}`}
+                        aria-pressed={item.completed}
+                        title={getChecklistActionTitle(task, userId)}
+                        disabled={
+                          updatingChecklistItemId !== null ||
+                          task.status === 'COMPLETED' ||
+                          task.assignee?.id !== userId
+                        }
+                        onClick={() => handleChecklistItemChange(item.id, !item.completed)}
+                      >
+                        {item.completed ? (
+                          <CircleCheckBig size={18} aria-hidden="true" />
+                        ) : (
+                          <Circle size={18} aria-hidden="true" />
+                        )}
+                      </button>
+                      <span>{item.description}</span>
+                    </li>
+                  ))}
+                </ul>
+                {task.assignee?.id !== userId && (
+                  <p className="task-detail__checklist-help">
+                    Somente o responsável pode atualizar este checklist.
+                  </p>
+                )}
+                {checklistError && <p className="task-detail__checklist-error" role="alert">{checklistError}</p>}
+              </div>
+            )}
+
             <dl className="task-detail__metadata">
               <div>
                 <dt><UsersRound size={17} aria-hidden="true" /> Time</dt>
@@ -219,6 +298,16 @@ function formatCreatedAt(value: string) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value))
+}
+
+function getChecklistActionTitle(task: Task, currentUserId: number | null) {
+  if (task.assignee?.id !== currentUserId) {
+    return 'Somente o responsável pode atualizar o checklist'
+  }
+  if (task.status === 'COMPLETED') {
+    return 'Reabra a tarefa para desmarcar itens'
+  }
+  return undefined
 }
 
 function isAbortError(error: unknown) {

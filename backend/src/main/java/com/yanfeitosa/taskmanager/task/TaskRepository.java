@@ -57,6 +57,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = {"assignee", "team"})
+    @EntityGraph(attributePaths = {"assignee", "team", "checklistItems"})
     Optional<Task> findByIdAndTeamMembersEmail(Long id, String email);
 }

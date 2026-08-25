@@ -4,6 +4,17 @@ export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'COMPLETED'
 export type TaskStatusFilter = TaskStatus | 'OVERDUE' | ''
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH'
 
+export type ChecklistItem = {
+  id: number
+  description: string
+  completed: boolean
+}
+
+export type ChecklistItemPayload = {
+  description: string
+  completed: boolean
+}
+
 export type Task = {
   id: number
   title: string
@@ -18,6 +29,8 @@ export type Task = {
   createdAt: string
   dueDate: string | null
   overdue: boolean
+  progress: number
+  checklist: ChecklistItem[]
 }
 
 export type TeamMember = {
@@ -41,6 +54,7 @@ export type TaskPayload = {
   assigneeId: number | null
   teamId: number
   dueDate: string | null
+  checklist?: ChecklistItemPayload[]
 }
 
 export type TaskPage = {
@@ -138,5 +152,17 @@ export function updateTaskStatus(accessToken: string, task: Task, status: TaskSt
     assigneeId: task.assignee?.id ?? null,
     teamId: task.team.id,
     dueDate: task.dueDate,
+  })
+}
+
+export function updateChecklistItem(
+  accessToken: string,
+  taskId: number,
+  itemId: number,
+  completed: boolean,
+) {
+  return authenticatedApiRequest<Task>(`/tasks/${taskId}/checklist/${itemId}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify({ completed }),
   })
 }

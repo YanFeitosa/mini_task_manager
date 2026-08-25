@@ -27,12 +27,13 @@ const EMPTY_VALUES: TaskFormValues = {
   teamId: '',
   assigneeId: '',
   dueDate: '',
+  checklist: [],
 }
 
 export function TaskFormPage({ mode }: TaskFormPageProps) {
   const navigate = useNavigate()
   const { id } = useParams()
-  const { token, expireSession } = useAuth()
+  const { token, userId, expireSession } = useAuth()
   const taskId = mode === 'edit' ? Number(id) : null
   const invalidTaskId = mode === 'edit' && (!Number.isInteger(taskId) || Number(taskId) <= 0)
   const [teams, setTeams] = useState<Team[]>([])
@@ -108,6 +109,8 @@ export function TaskFormPage({ mode }: TaskFormPageProps) {
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         expireSession()
+      } else if (error instanceof ApiError && error.status === 403) {
+        setSubmitError('Somente o responsável pode concluir a tarefa.')
       } else if (error instanceof ApiError && error.status === 422) {
         setSubmitError('Verifique se o responsável pertence ao time selecionado.')
       } else {
@@ -166,6 +169,8 @@ export function TaskFormPage({ mode }: TaskFormPageProps) {
             submitLabel={mode === 'create' ? 'Criar tarefa' : 'Salvar alterações'}
             isSubmitting={isSubmitting}
             serverError={submitError}
+            checklistEditable={mode === 'create'}
+            currentUserId={userId}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
           />
@@ -184,6 +189,11 @@ function valuesFromTask(task: Task): TaskFormValues {
     teamId: String(task.team.id),
     assigneeId: task.assignee ? String(task.assignee.id) : '',
     dueDate: task.dueDate ?? '',
+    checklist: task.checklist.map((item) => ({
+      key: String(item.id),
+      description: item.description,
+      completed: item.completed,
+    })),
   }
 }
 

@@ -12,11 +12,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.ORIGIN;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -31,11 +37,29 @@ class TaskControllerIntegrationTests {
     private MockMvc mockMvc;
 
     @Test
+    void shouldAllowChecklistPatchFromFrontendOrigin() throws Exception {
+        mockMvc.perform(options("/tasks/1/checklist/1")
+                        .header(ORIGIN, "http://localhost:5173")
+                        .header(ACCESS_CONTROL_REQUEST_METHOD, "PATCH"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Methods", containsString("PATCH")));
+    }
+
+    @Test
     void shouldCreateReadUpdateAndDeleteTask() throws Exception {
         RegisteredUser alice = registerAndLogin("Alice", "alice@example.com");
         RegisteredUser bob = registerAndLogin("Bob", "bob@example.com");
         long teamId = createTeam(alice.accessToken(), "Platform");
         addTeamMember(alice.accessToken(), teamId, bob.id());
+
+        mockMvc.perform(post("/tasks")
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(taskBody("Premature completion", "COMPLETED", "HIGH", bob.id(), teamId)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value(
+                        "Only the task assignee can complete tasks and update checklist items"
+                ));
 
         MvcResult createResult = mockMvc.perform(post("/tasks")
                         .header(AUTHORIZATION, bearer(alice.accessToken()))
@@ -45,6 +69,8 @@ class TaskControllerIntegrationTests {
                 .andExpect(jsonPath("$.title").value("Release API"))
                 .andExpect(jsonPath("$.status").value("TODO"))
                 .andExpect(jsonPath("$.priority").value("HIGH"))
+                .andExpect(jsonPath("$.progress").value(0))
+                .andExpect(jsonPath("$.checklist").isEmpty())
                 .andExpect(jsonPath("$.assignee.id").value(bob.id()))
                 .andExpect(jsonPath("$.team.id").value(teamId))
                 .andReturn();
@@ -61,9 +87,16 @@ class TaskControllerIntegrationTests {
                         .header(AUTHORIZATION, bearer(alice.accessToken()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(taskBody("Release public API", "COMPLETED", "MEDIUM", bob.id(), teamId)))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(put("/tasks/{id}", taskId)
+                        .header(AUTHORIZATION, bearer(bob.accessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(taskBody("Release public API", "COMPLETED", "MEDIUM", bob.id(), teamId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Release public API"))
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.progress").value(100))
                 .andExpect(jsonPath("$.priority").value("MEDIUM"));
 
         mockMvc.perform(delete("/tasks/{id}", taskId)
@@ -199,6 +232,91 @@ class TaskControllerIntegrationTests {
                         .param("status", "IN_PROGRESS"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].overdue").value(false));
+    }
+
+    @Test
+    void shouldSaveChecklistAndRequireAllItemsForCompletion() throws Exception {
+        RegisteredUser alice = registerAndLogin("Alice", "alice@example.com");
+        RegisteredUser bob = registerAndLogin("Bob", "bob@example.com");
+        long teamId = createTeam(alice.accessToken(), "Platform");
+        addTeamMember(alice.accessToken(), teamId, bob.id());
+
+        MvcResult createResult = mockMvc.perform(post("/tasks")
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(taskBodyWithChecklist("Prepare release", "TODO", alice.id(), teamId, false)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.checklist.length()").value(2))
+                .andExpect(jsonPath("$.checklist[0].description").value("Review changes"))
+                .andExpect(jsonPath("$.progress").value(50))
+                .andReturn();
+
+        Number taskIdValue = JsonPath.read(createResult.getResponse().getContentAsString(), "$.id");
+        long taskId = taskIdValue.longValue();
+        Number secondItemIdValue = JsonPath.read(
+                createResult.getResponse().getContentAsString(),
+                "$.checklist[1].id"
+        );
+        long secondItemId = secondItemIdValue.longValue();
+
+        mockMvc.perform(patch("/tasks/{taskId}/checklist/{itemId}", taskId, secondItemId)
+                        .header(AUTHORIZATION, bearer(bob.accessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"completed": true}
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value(
+                        "Only the task assignee can complete tasks and update checklist items"
+                ));
+
+        mockMvc.perform(put("/tasks/{id}", taskId)
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(taskBodyWithChecklist("Prepare release", "TODO", alice.id(), teamId, true)))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.detail").value(
+                        "Checklist structure can only be defined when creating a task"
+                ));
+
+        mockMvc.perform(put("/tasks/{id}", taskId)
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(taskBody("Prepare release", "COMPLETED", "HIGH", alice.id(), teamId)))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.detail").value(
+                        "A task can only be completed when all checklist items are completed"
+                ));
+
+        mockMvc.perform(patch("/tasks/{taskId}/checklist/{itemId}", taskId, secondItemId)
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"completed": true}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.progress").value(100))
+                .andExpect(jsonPath("$.checklist[1].completed").value(true));
+
+        mockMvc.perform(put("/tasks/{id}", taskId)
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(taskBody("Prepare release", "COMPLETED", "HIGH", alice.id(), teamId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.progress").value(100))
+                .andExpect(jsonPath("$.checklist[1].completed").value(true));
+
+        mockMvc.perform(patch("/tasks/{taskId}/checklist/{itemId}", taskId, secondItemId)
+                        .header(AUTHORIZATION, bearer(alice.accessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"completed": false}
+                                """))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.detail").value(
+                        "A completed task must keep all checklist items completed"
+                ));
     }
 
     @Test
@@ -340,6 +458,30 @@ class TaskControllerIntegrationTests {
                   "dueDate": "%s"
                 }
                 """.formatted(title, status, priority, assignee, teamId, dueDate);
+    }
+
+    private String taskBodyWithChecklist(
+            String title,
+            String status,
+            long assigneeId,
+            long teamId,
+            boolean secondItemCompleted
+    ) {
+        return """
+                {
+                  "title": "%s",
+                  "description": "Task with checklist",
+                  "status": "%s",
+                  "priority": "HIGH",
+                  "assigneeId": %d,
+                  "teamId": %d,
+                  "dueDate": "2030-12-31",
+                  "checklist": [
+                    {"description": "Review changes", "completed": true},
+                    {"description": "Publish release", "completed": %s}
+                  ]
+                }
+                """.formatted(title, status, assigneeId, teamId, secondItemCompleted);
     }
 
     private String bearer(String accessToken) {

@@ -73,6 +73,40 @@
   font-size: 0.73rem;
 }
 
+.task-form__checklist-locked {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  color: var(--text-muted);
+  background: rgba(238, 231, 220, 0.45);
+}
+
+.task-form__checklist-locked > svg {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+}
+
+.task-form__checklist-locked strong {
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.task-form__checklist-locked p {
+  margin: 0.2rem 0 0;
+  font-size: 0.76rem;
+}
+
+.task-form__checklist-locked span {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--error);
+  font-size: 0.73rem;
+}
+
 .task-form__actions {
   display: flex;
   grid-column: 1 / -1;
@@ -126,6 +160,7 @@
 
   .task-form__field--full,
   .task-form__error,
+  .task-form__checklist-locked,
   .task-form__actions {
     grid-column: auto;
   }

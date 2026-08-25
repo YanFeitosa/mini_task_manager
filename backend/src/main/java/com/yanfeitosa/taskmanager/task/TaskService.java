@@ -1,8 +1,10 @@
 package com.yanfeitosa.taskmanager.task;
 
 import com.yanfeitosa.taskmanager.task.dto.SaveTaskRequest;
+import com.yanfeitosa.taskmanager.task.dto.SaveTaskRequest.ChecklistItemRequest;
 import com.yanfeitosa.taskmanager.task.dto.TaskPageResponse;
 import com.yanfeitosa.taskmanager.task.dto.TaskResponse;
+import com.yanfeitosa.taskmanager.task.dto.UpdateChecklistItemRequest;
 import com.yanfeitosa.taskmanager.team.Team;
 import com.yanfeitosa.taskmanager.team.TeamRepository;
 import com.yanfeitosa.taskmanager.user.User;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -40,6 +43,7 @@ public class TaskService {
     public TaskResponse create(String currentUserEmail, SaveTaskRequest request) {
         Team team = findAccessibleTeam(request.teamId(), currentUserEmail);
         User assignee = findAssignee(team, request.assigneeId());
+        ensureCanComplete(null, request.status(), assignee, currentUserEmail);
         Task task = new Task(
                 request.title().trim(),
                 request.description(),
@@ -47,7 +51,8 @@ public class TaskService {
                 request.priority(),
                 assignee,
                 team,
-                request.dueDate()
+                request.dueDate(),
+                toChecklistItems(request.checklist())
         );
 
         return TaskResponse.from(taskRepository.save(task));
@@ -116,9 +121,17 @@ public class TaskService {
 
     @Transactional
     public TaskResponse update(Long taskId, String currentUserEmail, SaveTaskRequest request) {
+        if (request.checklist() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNPROCESSABLE_CONTENT,
+                    "Checklist structure can only be defined when creating a task"
+            );
+        }
+
         Task task = findAccessibleTask(taskId, currentUserEmail);
         Team team = findAccessibleTeam(request.teamId(), currentUserEmail);
         User assignee = findAssignee(team, request.assigneeId());
+        ensureCanComplete(task.getStatus(), request.status(), assignee, currentUserEmail);
 
         task.update(
                 request.title().trim(),
@@ -129,6 +142,22 @@ public class TaskService {
                 team,
                 request.dueDate()
         );
+
+        return TaskResponse.from(task);
+    }
+
+    @Transactional
+    public TaskResponse updateChecklistItem(
+            Long taskId,
+            Long itemId,
+            String currentUserEmail,
+            UpdateChecklistItemRequest request
+    ) {
+        Task task = findAccessibleTask(taskId, currentUserEmail);
+        ensureCurrentAssignee(task.getAssignee(), currentUserEmail);
+        if (!task.updateChecklistItem(itemId, request.completed())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Checklist item not found");
+        }
 
         return TaskResponse.from(task);
     }
@@ -160,5 +189,37 @@ public class TaskService {
                         HttpStatus.UNPROCESSABLE_CONTENT,
                         "Assignee must be a member of the task team"
                 ));
+    }
+
+    private void ensureCanComplete(
+            TaskStatus currentStatus,
+            TaskStatus requestedStatus,
+            User assignee,
+            String currentUserEmail
+    ) {
+        if (requestedStatus == TaskStatus.COMPLETED
+                && currentStatus != TaskStatus.COMPLETED
+                && assignee != null) {
+            ensureCurrentAssignee(assignee, currentUserEmail);
+        }
+    }
+
+    private void ensureCurrentAssignee(User assignee, String currentUserEmail) {
+        if (assignee == null || !assignee.getEmail().equalsIgnoreCase(currentUserEmail)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only the task assignee can complete tasks and update checklist items"
+            );
+        }
+    }
+
+    private List<TaskChecklistItem> toChecklistItems(List<ChecklistItemRequest> checklist) {
+        if (checklist == null) {
+            return List.of();
+        }
+
+        return checklist.stream()
+                .map(item -> new TaskChecklistItem(item.description(), item.completed()))
+                .toList();
     }
 }

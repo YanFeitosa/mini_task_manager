@@ -1,6 +1,7 @@
 package com.yanfeitosa.taskmanager.bootstrap;
 
 import com.yanfeitosa.taskmanager.task.Task;
+import com.yanfeitosa.taskmanager.task.TaskChecklistItem;
 import com.yanfeitosa.taskmanager.task.TaskPriority;
 import com.yanfeitosa.taskmanager.task.TaskRepository;
 import com.yanfeitosa.taskmanager.task.TaskStatus;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -105,7 +107,12 @@ public class DemoDataInitializer implements ApplicationRunner {
                 TaskPriority.HIGH,
                 bruno,
                 productTeam,
-                LocalDate.now().plusDays(3)
+                LocalDate.now().plusDays(3),
+                List.of(
+                        new TaskChecklistItem("Criar endpoint de login", true),
+                        new TaskChecklistItem("Integrar autenticação no frontend", true),
+                        new TaskChecklistItem("Validar expiração da sessão", false)
+                )
         ));
         saveIfMissing(existingTitles, new Task(
                 "Revisar fluxo de tarefas",
