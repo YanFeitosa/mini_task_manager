@@ -1,0 +1,134 @@
+.checklist-editor {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 0.85rem;
+  padding-top: 0.2rem;
+}
+
+.checklist-editor__heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.checklist-editor__heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.checklist-editor__heading p,
+.checklist-editor__empty {
+  margin: 0.3rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.checklist-editor__heading button {
+  display: inline-flex;
+  min-height: 2.35rem;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  color: var(--primary);
+  background: var(--surface);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.checklist-editor__heading button:hover:not(:disabled) {
+  background: var(--surface-muted);
+}
+
+.checklist-editor__heading button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.checklist-editor__empty {
+  margin: 0;
+  padding: 0.8rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.78rem;
+  text-align: center;
+}
+
+.checklist-editor__items {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.checklist-editor__item {
+  display: grid;
+  grid-template-columns: 2.35rem minmax(0, 1fr) 2.35rem;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.checklist-editor__item input {
+  min-height: 2.55rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.72rem;
+  color: var(--text);
+  background: rgba(238, 231, 220, 0.45);
+  font: inherit;
+}
+
+.checklist-editor__item input:focus {
+  outline: 0;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px rgba(169, 139, 109, 0.14);
+}
+
+.checklist-editor__toggle,
+.checklist-editor__remove {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0.65rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.checklist-editor__toggle {
+  color: var(--primary);
+}
+
+.checklist-editor__remove {
+  color: var(--text-muted);
+}
+
+.checklist-editor__toggle:hover,
+.checklist-editor__remove:hover {
+  background: var(--surface-muted);
+}
+
+.checklist-editor__error {
+  color: var(--error);
+  font-size: 0.73rem;
+}
+
+@media (max-width: 620px) {
+  .checklist-editor {
+    grid-column: auto;
+  }
+
+  .checklist-editor__heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .checklist-editor__heading button {
+    width: 100%;
+    justify-content: center;
+  }
+}

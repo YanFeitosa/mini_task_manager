@@ -1,7 +1,8 @@
-import { CircleAlert, Save } from 'lucide-react'
+import { CircleAlert, ListChecks, Save } from 'lucide-react'
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { DatePicker } from '../../components/DatePicker'
 import { Select } from '../../components/Select'
+import { ChecklistEditor, type ChecklistFormItem } from './ChecklistEditor'
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from './taskPresentation'
 import type { TaskPayload, TaskPriority, TaskStatus, Team } from './tasksApi'
 import './TaskForm.css'
@@ -14,6 +15,7 @@ export type TaskFormValues = {
   teamId: string
   assigneeId: string
   dueDate: string
+  checklist: ChecklistFormItem[]
 }
 
 type TaskFormProps = {
@@ -22,6 +24,8 @@ type TaskFormProps = {
   submitLabel: string
   isSubmitting: boolean
   serverError: string | null
+  checklistEditable: boolean
+  currentUserId: number | null
   onSubmit: (payload: TaskPayload) => void
   onCancel: () => void
 }
@@ -34,6 +38,8 @@ export function TaskForm({
   submitLabel,
   isSubmitting,
   serverError,
+  checklistEditable,
+  currentUserId,
   onSubmit,
   onCancel,
 }: TaskFormProps) {
@@ -54,6 +60,12 @@ export function TaskForm({
       label: member.name,
     })) ?? []),
   ]
+  const statusOptions = STATUS_OPTIONS.filter(
+    (option) =>
+      option.value !== 'COMPLETED' ||
+      values.status === 'COMPLETED' ||
+      values.assigneeId === String(currentUserId),
+  )
 
   function handleTextChange(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const field = event.target.name as keyof TaskFormValues
@@ -77,12 +89,28 @@ export function TaskForm({
         assigneeId: keepsAssignee ? current.assigneeId : '',
       }
     })
-    setErrors((current) => ({ ...current, [field]: undefined, assigneeId: undefined }))
+    setErrors((current) => ({
+      ...current,
+      [field]: undefined,
+      assigneeId: undefined,
+      status: undefined,
+      checklist: field === 'status' ? undefined : current.checklist,
+    }))
+  }
+
+  function handleChecklistChange(checklist: ChecklistFormItem[]) {
+    setValues((current) => ({ ...current, checklist }))
+    setErrors((current) => ({ ...current, checklist: undefined }))
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const nextErrors = validate(values)
+    const nextErrors = validate(
+      values,
+      checklistEditable,
+      currentUserId,
+      initialValues.status,
+    )
     setErrors(nextErrors)
 
     if (Object.keys(nextErrors).length > 0) {
@@ -97,6 +125,12 @@ export function TaskForm({
       teamId: Number(values.teamId),
       assigneeId: values.assigneeId ? Number(values.assigneeId) : null,
       dueDate: values.dueDate || null,
+      ...(checklistEditable && {
+        checklist: values.checklist.map((item) => ({
+          description: item.description.trim(),
+          completed: item.completed,
+        })),
+      }),
     })
   }
 
@@ -144,9 +178,10 @@ export function TaskForm({
         <Select
           ariaLabel="Status da tarefa"
           value={values.status}
-          options={STATUS_OPTIONS}
+          options={statusOptions}
           onChange={(value) => handleSelectChange('status', value)}
         />
+        {errors.status && <span>{errors.status}</span>}
       </div>
 
       <div className="task-form__field">
@@ -193,6 +228,23 @@ export function TaskForm({
         />
       </div>
 
+      {checklistEditable ? (
+        <ChecklistEditor
+          items={values.checklist}
+          error={errors.checklist}
+          onChange={handleChecklistChange}
+        />
+      ) : values.checklist.length > 0 ? (
+        <section className="task-form__checklist-locked">
+          <ListChecks size={20} aria-hidden="true" />
+          <div>
+            <strong>Checklist</strong>
+            <p>Marque os itens na tela de detalhes da tarefa.</p>
+            {errors.checklist && <span>{errors.checklist}</span>}
+          </div>
+        </section>
+      ) : null}
+
       <div className="task-form__actions">
         <button type="button" onClick={onCancel} disabled={isSubmitting}>
           Cancelar
@@ -206,7 +258,12 @@ export function TaskForm({
   )
 }
 
-function validate(values: TaskFormValues): FormErrors {
+function validate(
+  values: TaskFormValues,
+  checklistEditable: boolean,
+  currentUserId: number | null,
+  initialStatus: TaskStatus,
+): FormErrors {
   const errors: FormErrors = {}
 
   if (!values.title.trim()) {
@@ -223,6 +280,19 @@ function validate(values: TaskFormValues): FormErrors {
   }
   if (values.status === 'COMPLETED' && !values.assigneeId) {
     errors.assigneeId = 'Uma tarefa concluída precisa ter responsável.'
+  }
+  if (
+    values.status === 'COMPLETED' &&
+    initialStatus !== 'COMPLETED' &&
+    Boolean(values.assigneeId) &&
+    values.assigneeId !== String(currentUserId)
+  ) {
+    errors.status = 'Somente o responsável pode concluir a tarefa.'
+  }
+  if (checklistEditable && values.checklist.some((item) => !item.description.trim())) {
+    errors.checklist = 'Preencha ou remova os itens vazios do checklist.'
+  } else if (values.status === 'COMPLETED' && values.checklist.some((item) => !item.completed)) {
+    errors.checklist = 'Conclua todos os itens antes de concluir a tarefa.'
   }
 
   return errors

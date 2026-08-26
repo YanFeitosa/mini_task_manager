@@ -3,19 +3,20 @@ import { Link } from 'react-router'
 import { Select } from '../../components/Select'
 import {
   formatDate,
-  getStatusTone,
+  getTaskStatusOptions,
+  getTaskStatusTone,
   PRIORITY_LABELS,
-  STATUS_OPTIONS,
 } from './taskPresentation'
 import type { Task, TaskStatus } from './tasksApi'
 
 type TaskListProps = {
   tasks: Task[]
+  currentUserId: number | null
   updatingTaskId: number | null
   onStatusChange: (task: Task, status: TaskStatus) => void
 }
 
-export function TaskList({ tasks, updatingTaskId, onStatusChange }: TaskListProps) {
+export function TaskList({ tasks, currentUserId, updatingTaskId, onStatusChange }: TaskListProps) {
   return (
     <div className="task-list" role="list">
       <div className="task-list__labels" aria-hidden="true">
@@ -23,6 +24,7 @@ export function TaskList({ tasks, updatingTaskId, onStatusChange }: TaskListProp
         <span>Status</span>
         <span>Prioridade</span>
         <span>Responsável</span>
+        <span>Progresso</span>
         <span>Prazo</span>
       </div>
 
@@ -36,29 +38,41 @@ export function TaskList({ tasks, updatingTaskId, onStatusChange }: TaskListProp
             <span>{task.team.name}</span>
           </div>
 
-          <div className="task-row__field">
+          <div className="task-row__field task-row__field--center">
             <span className="task-row__mobile-label">Status</span>
             <Select
               compact
-              tone={getStatusTone(task.status)}
+              tone={getTaskStatusTone(task)}
               value={task.status}
-              options={STATUS_OPTIONS}
+              options={getAvailableStatusOptions(task, currentUserId)}
               ariaLabel={`Status da tarefa ${task.title}`}
               disabled={updatingTaskId !== null}
               onChange={(value) => onStatusChange(task, value as TaskStatus)}
             />
           </div>
 
-          <div className="task-row__field">
+          <div className="task-row__field task-row__field--center">
             <span className="task-row__mobile-label">Prioridade</span>
             <span className={`priority-badge priority-badge--${task.priority.toLowerCase()}`}>
               {PRIORITY_LABELS[task.priority]}
             </span>
           </div>
 
-          <div className="task-row__field task-assignee">
+          <div className="task-row__field task-row__field--center task-assignee">
             <span className="task-row__mobile-label">Responsável</span>
-            <span>{task.assignee?.name ?? 'Não atribuído'}</span>
+            <span className={task.assignee ? undefined : 'task-assignee--unassigned'}>
+              {task.assignee?.name ?? 'Não atribuído'}
+            </span>
+          </div>
+
+          <div className="task-row__field task-row__field--center">
+            <span className="task-row__mobile-label">Progresso</span>
+            <span className="task-progress" aria-label={`${task.progress}% concluído`}>
+              <span>{task.progress}%</span>
+              <span className="task-progress__track" aria-hidden="true">
+                <span style={{ width: `${task.progress}%` }} />
+              </span>
+            </span>
           </div>
 
           <div className="task-row__field">
@@ -71,6 +85,15 @@ export function TaskList({ tasks, updatingTaskId, onStatusChange }: TaskListProp
         </article>
       ))}
     </div>
+  )
+}
+
+function getAvailableStatusOptions(task: Task, currentUserId: number | null) {
+  return getTaskStatusOptions(task).filter(
+    (option) =>
+      option.value !== 'COMPLETED' ||
+      task.status === 'COMPLETED' ||
+      task.assignee?.id === currentUserId,
   )
 }
 

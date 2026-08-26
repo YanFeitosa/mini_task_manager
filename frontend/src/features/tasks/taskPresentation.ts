@@ -1,7 +1,7 @@
-import type { TaskPriority, TaskStatus } from './tasksApi'
+import type { Task, TaskPriority, TaskStatus } from './tasksApi'
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
-  TODO: 'Pendente',
+  TODO: 'A fazer',
   IN_PROGRESS: 'Em andamento',
   COMPLETED: 'Concluída',
 }
@@ -37,4 +37,37 @@ export function getStatusTone(status: TaskStatus) {
     IN_PROGRESS: 'in-progress',
     COMPLETED: 'completed',
   }[status] as 'todo' | 'in-progress' | 'completed'
+}
+
+export function getTaskStatusLabel(task: Task) {
+  return task.overdue ? 'Pendente' : STATUS_LABELS[task.status]
+}
+
+export function getTaskStatusTone(task: Task) {
+  return task.overdue ? 'pending' : getStatusTone(task.status)
+}
+
+export function getTaskStatusOptions(task: Task) {
+  if (!task.overdue) {
+    return STATUS_OPTIONS
+  }
+
+  return STATUS_OPTIONS.map((option) =>
+    option.value === 'TODO' ? { ...option, label: 'Pendente' } : option,
+  )
+}
+
+export function isPastDueDate(dueDate: string | null) {
+  if (!dueDate) {
+    return false
+  }
+
+  const now = new Date()
+  const today = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
+
+  return dueDate < today
 }

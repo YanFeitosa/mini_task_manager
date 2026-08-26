@@ -14,7 +14,7 @@ type SelectProps = {
   ariaLabel: string
   disabled?: boolean
   compact?: boolean
-  tone?: 'neutral' | 'todo' | 'in-progress' | 'completed'
+  tone?: 'neutral' | 'todo' | 'pending' | 'in-progress' | 'completed'
   className?: string
 }
 

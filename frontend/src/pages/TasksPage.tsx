@@ -15,6 +15,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { Select } from '../components/Select'
 import { useAuth } from '../features/auth/authContext'
 import { TaskList } from '../features/tasks/TaskList'
+import { isPastDueDate } from '../features/tasks/taskPresentation'
 import {
   getTasks,
   getTeamMembers,
@@ -36,7 +37,8 @@ const EMPTY_FILTERS: TaskFilters = {
 
 const STATUS_FILTER_OPTIONS = [
   { value: '', label: 'Todos' },
-  { value: 'TODO', label: 'Pendente' },
+  { value: 'TODO', label: 'A fazer' },
+  { value: 'OVERDUE', label: 'Pendente' },
   { value: 'IN_PROGRESS', label: 'Em andamento' },
   { value: 'COMPLETED', label: 'Concluída' },
 ]
@@ -173,8 +175,27 @@ export function TasksPage() {
     }
 
     setStatusError(null)
+    if (status === 'COMPLETED' && !task.assignee) {
+      setStatusError('Defina um responsável antes de concluir esta tarefa.')
+      return
+    }
+    if (status === 'COMPLETED' && task.assignee?.id !== userId) {
+      setStatusError('Somente o responsável pode concluir esta tarefa.')
+      return
+    }
+    if (status === 'COMPLETED' && task.checklist.some((item) => !item.completed)) {
+      setStatusError('Conclua todos os itens do checklist antes de concluir esta tarefa.')
+      return
+    }
+
     setUpdatingTaskId(task.id)
-    replaceTask({ ...task, status })
+    replaceTask({
+      ...task,
+      status,
+      overdue: status === 'TODO' && isPastDueDate(task.dueDate),
+      progress:
+        task.checklist.length === 0 ? (status === 'COMPLETED' ? 100 : 0) : task.progress,
+    })
 
     try {
       const updatedTask = await updateTaskStatus(token, task, status)
@@ -189,8 +210,10 @@ export function TasksPage() {
 
       if (error instanceof ApiError && error.status === 401) {
         expireSession()
+      } else if (error instanceof ApiError && error.status === 403) {
+        setStatusError('Somente o responsável pode concluir esta tarefa.')
       } else if (error instanceof ApiError && error.status === 422) {
-        setStatusError('Defina um responsável antes de concluir esta tarefa.')
+        setStatusError('A tarefa não atende aos requisitos para ser concluída.')
       } else {
         setStatusError('Não foi possível alterar o status da tarefa. Tente novamente.')
       }
@@ -358,6 +381,7 @@ export function TasksPage() {
           ) : (
             <TaskList
               tasks={tasks}
+              currentUserId={userId}
               updatingTaskId={updatingTaskId}
               onStatusChange={handleStatusChange}
             />

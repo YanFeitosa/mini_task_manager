@@ -232,7 +232,7 @@
 .task-list__labels,
 .task-row {
   display: grid;
-  grid-template-columns: minmax(13rem, 2fr) 9.5rem 7rem minmax(9rem, 1fr) 9rem;
+  grid-template-columns: minmax(12rem, 2fr) 9rem 6.5rem minmax(8rem, 1fr) 7rem 8.5rem;
   align-items: center;
   gap: 1rem;
   padding-right: 1.25rem;
@@ -247,6 +247,13 @@
   font-weight: 700;
   letter-spacing: 0.055em;
   text-transform: uppercase;
+}
+
+.task-list__labels span:nth-child(2),
+.task-list__labels span:nth-child(3),
+.task-list__labels span:nth-child(4),
+.task-list__labels span:nth-child(5) {
+  text-align: center;
 }
 
 .task-row {
@@ -303,6 +310,11 @@
   min-width: 0;
 }
 
+.task-row__field--center {
+  display: flex;
+  justify-content: center;
+}
+
 .task-row__mobile-label {
   display: none;
 }
@@ -323,19 +335,48 @@
 }
 
 .priority-badge::before {
-  width: 0.45rem;
-  height: 0.45rem;
+  width: 0.62rem;
+  height: 0.62rem;
   border-radius: 50%;
-  background: #a99b8d;
+  background: #55a466;
   content: '';
 }
 
 .priority-badge--medium::before {
-  background: #b49468;
+  background: #df9627;
 }
 
 .priority-badge--high::before {
-  background: #b06c5d;
+  background: #dc5849;
+}
+
+.task-assignee > .task-assignee--unassigned {
+  color: #a23e34;
+  font-weight: 700;
+}
+
+.task-progress {
+  display: grid;
+  width: 5.25rem;
+  gap: 0.3rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.task-progress__track {
+  height: 0.3rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5ddd2;
+}
+
+.task-progress__track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #7d956f;
 }
 
 .task-date {
@@ -440,7 +481,7 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 980px) {
   .task-list__labels {
     display: none;
   }
@@ -459,6 +500,7 @@
 
   .task-row__field {
     display: grid;
+    justify-content: initial;
     gap: 0.4rem;
   }
 

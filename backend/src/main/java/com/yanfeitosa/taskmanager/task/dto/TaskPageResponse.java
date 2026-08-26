@@ -3,6 +3,7 @@ package com.yanfeitosa.taskmanager.task.dto;
 import com.yanfeitosa.taskmanager.task.Task;
 import org.springframework.data.domain.Page;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public record TaskPageResponse(
@@ -13,9 +14,9 @@ public record TaskPageResponse(
         int totalPages
 ) {
 
-    public static TaskPageResponse from(Page<Task> tasks) {
+    public static TaskPageResponse from(Page<Task> tasks, LocalDate today) {
         return new TaskPageResponse(
-                tasks.getContent().stream().map(TaskResponse::from).toList(),
+                tasks.getContent().stream().map(task -> TaskResponse.from(task, today)).toList(),
                 tasks.getNumber(),
                 tasks.getSize(),
                 tasks.getTotalElements(),
