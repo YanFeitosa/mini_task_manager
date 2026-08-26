@@ -1,83 +1,81 @@
 # Mini Task Manager
 
-## Objetivo
+Aplicação full stack para organizar tarefas em equipes pequenas. Inclui autenticação, times, responsáveis, filtros e checklists, com as regras de negócio validadas pela API.
 
-Construir uma aplicação full stack simples para que pequenos times possam organizar tarefas  e acompanhar o status das demandas.
+## Recursos
+
+- autenticação com JWT e acesso restrito aos times do usuário;
+- criação, edição, exclusão e visualização de tarefas;
+- filtros, paginação, prioridades, responsáveis e prazos;
+- checklist opcional, progresso calculado e regras de conclusão;
+- interface responsiva e dados de demonstração para uso local.
 
 ## Stack
 
-### Back-end
-- Java 21
-- Spring Boot
-- Spring Web
-- Spring Security
-- Spring Data JPA / Hibernate
-- Flyway
-- PostgreSQL
-- JWT
+| Camada | Tecnologias |
+| --- | --- |
+| Back-end | Java 21, Spring Boot, Spring Security, JPA e Flyway |
+| Front-end | React 19, TypeScript e Vite |
+| Banco e infraestrutura | PostgreSQL 17, Docker Compose e Nginx |
 
-### Front-end
-- React
-- TypeScript
-- Vite
+## Início rápido
 
-### Infraestrutura
-- Docker
+Com o Docker Desktop em execução, rode na raiz do projeto:
 
-## Arquitetura
+```bash
+docker compose up --build
+```
 
-O back-end será desenvolvido como um **monólito modular**, mantendo os principais domínios da aplicação separados internamente.
+- aplicação: http://localhost:5173
+- API: http://localhost:8080
+- health check: http://localhost:8080/actuator/health
 
-Essa abordagem foi escolhida por ser proporcional ao escopo atual do projeto, evitando a complexidade operacional de uma arquitetura distribuída sem necessidade real.
+Para entrar, use `ana@taskmanager.local` e a senha `demo1234`. Também existem usuários demonstrativos para `bruno`, `carla` e `diego` no domínio `@taskmanager.local`, todos com a mesma senha.
 
-A separação entre os módulos também facilita uma possível evolução futura para microsserviços. Caso algum domínio passe a exigir escalabilidade, implantação ou evolução independente, ele poderá ser extraído gradualmente sem que seja necessário introduzir essa complexidade desde o início.
+Encerre os serviços com `docker compose down`. Para apagar também os dados locais, use `docker compose down -v`.
 
-Os principais módulos previstos são:
+## Desenvolvimento local
 
-- Autenticação
-- Usuários
-- Times
-- Tarefas
+Requisitos: Java 21, Node.js 22 e Docker Desktop.
 
-## Entidades principais
+Inicie o banco e o back-end:
 
-### User
+```bash
+docker compose up -d postgres
+cd backend
+cp .env.example .env
+./mvnw spring-boot:run
+```
 
-Representa um usuário da aplicação.
+Em outro terminal, inicie o front-end:
 
-Principais dados:
+```bash
+cd frontend
+cp .env.example .env
+npm ci
+npm run dev
+```
 
-- nome
-- e-mail
-- senha
+No Windows PowerShell, use `Copy-Item .env.example .env` e `.\mvnw.cmd` nos comandos equivalentes.
 
-### Team
+## Regras principais
 
-Representa um time responsável por organizar seus membros e tarefas.
+- Usuários só acessam tarefas dos times dos quais participam.
+- O responsável deve pertencer ao time da tarefa.
+- Uma tarefa só pode ser concluída se tiver responsável e, quando houver checklist, todos os itens estiverem marcados.
+- Apenas o responsável pode atualizar o checklist ou concluir a tarefa.
 
-Principais dados:
+## Testes e qualidade
 
-- nome
+Com o PostgreSQL ativo, execute:
 
-### TeamMember
+```bash
+cd backend
+./mvnw verify
 
-Representa a associação entre usuários e times, permitindo que um usuário participe de um ou mais times.
+cd ../frontend
+npm run lint
+npm run build
+```
 
-### Task
-
-Representa uma tarefa pertencente a um time.
-
-Principais dados:
-
-- título
-- descrição
-- status
-- prioridade
-- responsável
-- time
-- data de criação
-- prazo
-
-## Regra de negócio principal
-
-Uma tarefa só poderá ser marcada como concluída quando possuir um responsável atribuído.
+O mesmo fluxo é executado pelo GitHub Actions em pushes e pull requests para `main` e `develop`.
